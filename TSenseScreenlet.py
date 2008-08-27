@@ -27,12 +27,11 @@ import pango
 import subprocess
 import re
 import gobject
-import gtk
 import os
 
 WIDTH         = 220
 SENSOR_HEIGHT = 27
-PADDING       = 5
+PADDING       = 12
 
 def get_sensors():
 	data = {}
@@ -74,14 +73,15 @@ class TSenseScreenlet(screenlets.Screenlet):
 	color_normal    = (0.0, 1.0, 0.0, 1.0)
 	color_warning   = (1.0, 1.0, 0.0, 1.0)
 	color_alarm     = (1.0, 0.0, 0.0, 1.0)
-	color_text      = (1.0, 1.0, 1.0, 1.0)
+	color_text      = (0.0, 0.0, 0.0, 0.6)
+	frame_color     = (1.0, 1.0, 1.0, 1.0)
 
 	# constructor
 	def __init__(self, **keyword_args):
 		#call super
-		screenlets.Screenlet.__init__(self, width=WIDTH, height=SENSOR_HEIGHT * len(self.sensors) + PADDING, uses_theme=False, **keyword_args)
+		screenlets.Screenlet.__init__(self, width=WIDTH, height=SENSOR_HEIGHT * len(self.sensors) + 2 * PADDING, uses_theme=True, **keyword_args)
 		# set theme
-#		self.theme_name = 'default'
+		self.theme_name = 'default'
 		# add options
 		self.add_options_group('TSense', 'TSense specific options')
 		self.add_option(IntOption('TSense', 'update_interval', 
@@ -100,9 +100,9 @@ class TSenseScreenlet(screenlets.Screenlet):
 		self.add_option(ColorOption('TSense', 'color_alarm',
 			self.color_alarm, 'Alarm Color',
 			'The color to be displayed when drive usage is below the threshold'))
-		self.add_option(ColorOption('TSense', 'color_text',
-			self.color_text, 'Text Color',
-			'The text color'))
+		self.add_option(ColorOption('TSense', 'color_text', self.color_text, 'Text Color', ''))
+		self.add_option(ColorOption('TSense', 'frame_color', self.frame_color, 'Frame Color', ''))
+
 		# init the timeout function
 		self.update_interval = self.update_interval
 
@@ -125,11 +125,8 @@ class TSenseScreenlet(screenlets.Screenlet):
 
 			self.__timeout = gobject.timeout_add(int(value * 1000), self.update_graph)
 		elif name == 'sensors':
-			self.__dict__['width']  = 230
-			self.__dict__['height'] = SENSOR_HEIGHT * len(value) + PADDING
-			if self.window:
-				self.window.resize(int(self.width * self.scale), int(self.height * self.scale))
-
+			self.width  = 230
+			self.height = SENSOR_HEIGHT * len(value) + 2 * PADDING
 			self.__dict__['sensors'] = value
 			self.update_graph()
 		else:
@@ -143,10 +140,14 @@ class TSenseScreenlet(screenlets.Screenlet):
 	def on_draw(self, ctx):
 		sensors = get_sensors()
 
-		ctx.set_source_rgb(0, 0, 0)
-		ctx.paint_with_alpha(0.5)
 		ctx.scale(self.scale, self.scale)
 		ctx.set_operator(cairo.OPERATOR_OVER)
+
+		gradient = cairo.LinearGradient(0, self.height*2,0, 0)
+		gradient.add_color_stop_rgba(1,*self.frame_color)
+		gradient.add_color_stop_rgba(0.7,self.frame_color[0],self.frame_color[1],self.frame_color[2],1-self.frame_color[3]+0.5)
+		ctx.set_source(gradient)
+		self.draw_rectangle_advanced (ctx, 0, 0, self.width-12, self.height-12, rounded_angles=(5,5,5,5), fill=True, border_size=2, border_color=(0,0,0,0.5), shadow_size=6, shadow_color=(0,0,0,0.5))
 
 		ctx.translate(PADDING, PADDING)
 		for key in self.sensors:
@@ -209,11 +210,11 @@ class TSenseScreenlet(screenlets.Screenlet):
 			w = 0.0
 		else:
 			w = 1.0 * WIDTH * sensor['value'] / max
-		ctx.rectangle(0, 15, w, 6)
+		ctx.rectangle(0, 16, w, 6)
 		ctx.fill()
 
 	def on_draw_shape(self, ctx):
-		ctx.rectangle(0, 0, 230 * self.scale, len(self.sensors) * SENSOR_HEIGHT * self.scale + PADDING)
+		ctx.rectangle(0, 0, 230 * self.scale, ((len(self.sensors) * SENSOR_HEIGHT) + 2 * PADDING) * self.scale)
 		ctx.fill()
 	
 # If the program is run directly or passed as an argument to the python
