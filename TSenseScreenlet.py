@@ -188,9 +188,9 @@ class TSenseScreenlet(screenlets.Screenlet):
 		apply(ctx.set_source_rgba, self.color_normal)
 
 		if sensor['type'] == 'Temperature':
-			warning = 50.0
-			alarm   = 60.0
-			max     = alarm
+			warning = 70.0
+			alarm   = 75.0
+			max     = 80.0
 
 			if sensor['value'] > alarm:
 				apply(ctx.set_source_rgba, self.color_alarm)
